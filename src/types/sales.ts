@@ -1,0 +1,45 @@
+export type SalesRecord = {
+  id: string;
+  recordNumber: string;
+  opportunityName: string;
+  accountName: string;
+  accountOwner: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  billingStreet: string;
+  billingCity: string;
+  billingState: string;
+  billingPostalCode: string;
+  billingCountry: string;
+  shippingStreet: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingPostalCode: string;
+  shippingCountry: string;
+  productName: string;
+  productCategory: string;
+  productSku: string;
+  unitsSold: number;
+  unitPrice: number;
+  grossAmount: number;
+  discountRate: number;
+  discountAmount: number;
+  netAmount: number;
+  taxRate: number;
+  taxAmount: number;
+  totalAmount: number;
+  currency: string;
+  orderDate: string;
+  closeDate: string;
+  deliveryDate: string;
+  dealStage: string;
+  salesChannel: string;
+  paymentTerms: string;
+  paymentMethod: string;
+  probability: number;
+  priority: string;
+};
+
+export type SalesFieldKey = keyof SalesRecord;
+
