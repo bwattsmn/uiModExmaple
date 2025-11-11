@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import {
   DndContext,
@@ -101,10 +101,16 @@ type ColumnDragData = {
 }
 
 const MIN_SECTION_COLUMNS = 1
-const MAX_SECTION_COLUMNS = 4
+const HALF_SPAN_MAX_COLUMNS = 2
+const FULL_SPAN_MAX_COLUMNS = 4
+const MIN_SECTION_SPAN = 1
+const MAX_SECTION_SPAN = 2
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max)
+
+const getMaxColumnsForSpan = (span: number) =>
+  span >= MAX_SECTION_SPAN ? FULL_SPAN_MAX_COLUMNS : HALF_SPAN_MAX_COLUMNS
 
 const normalizeFields = (
   fields: SectionFieldConfig[],
@@ -199,6 +205,7 @@ const SectionContainer = ({
   onTitleChange,
   onRemove,
   onRequestAddField,
+  onSpanChange,
   onColumnsChange,
   availableFields,
   isEditing,
@@ -208,10 +215,17 @@ const SectionContainer = ({
   onTitleChange: (sectionId: string, title: string) => void
   onRemove: (sectionId: string) => void
   onRequestAddField: (sectionId: string, fieldKey: SalesFieldKey) => void
+  onSpanChange: (sectionId: string, span: number) => void
   onColumnsChange: (sectionId: string, columns: number) => void
   availableFields: SalesFieldKey[]
   isEditing: boolean
 }) => {
+  const sortable: ReturnType<typeof useSortable> = useSortable({
+    id: section.id,
+    data: { type: "section", sectionId: section.id },
+    disabled: !isEditing,
+  })
+
   const {
     attributes,
     listeners,
@@ -219,21 +233,27 @@ const SectionContainer = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({
-    id: section.id,
-    data: { type: "section", sectionId: section.id },
-    disabled: !isEditing,
-  })
+  } = sortable
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const transformValue =
+    transform != null ? String(CSS.Transform.toString(transform)) : undefined
+  const transitionValue =
+    typeof transition === "string" ? transition : undefined
+
+  const cardStyle = {
+    transform: transformValue,
+    transition: transitionValue,
+    gridColumn:
+      section.spanColumns >= MAX_SECTION_SPAN
+        ? "span 2 / span 2"
+        : "span 1 / span 1",
+  } satisfies CSSProperties
+  const maxColumnsForSpan = getMaxColumnsForSpan(section.spanColumns)
 
   return (
     <Card
       ref={setNodeRef}
-      style={style}
+      style={cardStyle}
       className={`bg-card/80 shadow-sm transition-shadow ${isDragging ? "ring-2 ring-primary/40" : ""}`}
     >
       <CardHeader className="flex flex-col gap-4 pb-4">
@@ -264,6 +284,26 @@ const SectionContainer = ({
           {isEditing ? (
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Span</span>
+                <Select
+                  value={String(section.spanColumns)}
+                  onValueChange={(value) =>
+                    onSpanChange(section.id, Number(value))
+                  }
+                >
+                  <SelectTrigger className="h-8 w-[88px]">
+                    <SelectValue placeholder="Span" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2].map((value) => (
+                      <SelectItem key={value} value={String(value)}>
+                        {value} column{value === 1 ? "" : "s"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Columns</span>
                 <Select
                   value={String(section.columns)}
@@ -275,10 +315,7 @@ const SectionContainer = ({
                     <SelectValue placeholder="Columns" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from(
-                      { length: MAX_SECTION_COLUMNS },
-                      (_, index) => index + 1,
-                    ).map((value) => (
+                    {Array.from({ length: maxColumnsForSpan }, (_, index) => index + 1).map((value) => (
                       <SelectItem key={value} value={String(value)}>
                         {value}
                       </SelectItem>
@@ -333,7 +370,10 @@ const SectionContainer = ({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {section.columns} {section.columns === 1 ? "column" : "columns"}
+              Spans {section.spanColumns}{" "}
+              {section.spanColumns === 1 ? "column" : "columns"} •{" "}
+              {section.columns} field{" "}
+              {section.columns === 1 ? "column" : "columns"}
             </p>
           )}
         </div>
@@ -360,6 +400,12 @@ const SortableFieldRow = ({
   onSpanChange: (sectionId: string, fieldId: string, span: number) => void
   isEditing: boolean
 }) => {
+  const sortableField: ReturnType<typeof useSortable> = useSortable({
+    id: field.id,
+    data: { type: "field", sectionId, fieldId: field.id },
+    disabled: !isEditing,
+  })
+
   const {
     attributes,
     listeners,
@@ -367,21 +413,22 @@ const SortableFieldRow = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({
-    id: field.id,
-    data: { type: "field", sectionId, fieldId: field.id },
-    disabled: !isEditing,
-  })
+  } = sortableField
+
+  const transformValue =
+    transform != null ? String(CSS.Transform.toString(transform)) : undefined
+  const transitionValue =
+    typeof transition === "string" ? transition : undefined
 
   const meta = SALES_FIELD_INDEX.get(field.fieldKey)
 
   if (!meta) return null
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const style = {
+    transform: transformValue,
+    transition: transitionValue,
     gridColumn: `${field.column + 1} / span ${Math.min(field.span, columns)}`,
-  }
+  } satisfies CSSProperties
 
   const displayValue = toFieldValue(record, field.fieldKey)
 
@@ -531,10 +578,17 @@ export function RecordDetail({ record }: RecordDetailProps) {
 
   const handleAddSection = () => {
     if (!isEditing) return
+    const defaultSpan = MIN_SECTION_SPAN
+    const initialColumns = clampNumber(
+      2,
+      MIN_SECTION_COLUMNS,
+      getMaxColumnsForSpan(defaultSpan),
+    )
     const newSection: ViewSection = {
       id: `section-${crypto.randomUUID()}`,
       title: `New Section ${sections.length + 1}`,
-      columns: 2,
+      spanColumns: defaultSpan,
+      columns: initialColumns,
       fields: [],
     }
     setSections((prev) => [...prev, newSection])
@@ -624,13 +678,37 @@ export function RecordDetail({ record }: RecordDetailProps) {
     setSections((prev) =>
       prev.map((section) => {
         if (section.id !== sectionId) return section
+        const maxColumnsForSpan = getMaxColumnsForSpan(section.spanColumns)
         const nextColumns = clampNumber(
           columns,
           MIN_SECTION_COLUMNS,
-          MAX_SECTION_COLUMNS,
+          maxColumnsForSpan,
         )
         return {
           ...section,
+          columns: nextColumns,
+          fields: normalizeFields(section.fields, nextColumns),
+        }
+      }),
+    )
+    setIsDirty(true)
+  }
+
+  const handleUpdateSectionSpan = (sectionId: string, span: number) => {
+    if (!isEditing) return
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== sectionId) return section
+        const nextSpan = clampNumber(span, MIN_SECTION_SPAN, MAX_SECTION_SPAN)
+        const maxColumnsForSpan = getMaxColumnsForSpan(nextSpan)
+        const nextColumns = clampNumber(
+          section.columns,
+          MIN_SECTION_COLUMNS,
+          maxColumnsForSpan,
+        )
+        return {
+          ...section,
+          spanColumns: nextSpan,
           columns: nextColumns,
           fields: normalizeFields(section.fields, nextColumns),
         }
@@ -1039,7 +1117,7 @@ export function RecordDetail({ record }: RecordDetailProps) {
           items={sections.map((section) => section.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex flex-col gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
             {sections.map((section) => (
               <SectionContainer
                 key={section.id}
@@ -1047,6 +1125,7 @@ export function RecordDetail({ record }: RecordDetailProps) {
                 onTitleChange={handleSectionTitleChange}
                 onRemove={handleRemoveSection}
                 onRequestAddField={handleRequestAddField}
+                onSpanChange={handleUpdateSectionSpan}
                 onColumnsChange={handleUpdateSectionColumns}
                 availableFields={availableFields}
                 isEditing={isEditing}

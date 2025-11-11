@@ -13,6 +13,9 @@ const clamp = (value: number, min: number, max: number) =>
 const MIN_COLUMNS = 1
 const MAX_COLUMNS = 4
 const DEFAULT_COLUMNS = 2
+const MIN_SECTION_SPAN = 1
+const MAX_SECTION_SPAN = 2
+const DEFAULT_SECTION_SPAN = 2
 
 export type SectionFieldConfig = {
   id: string
@@ -25,6 +28,7 @@ export type SectionFieldConfig = {
 export type ViewSection = {
   id: string
   title: string
+  spanColumns: number
   columns: number
   fields: SectionFieldConfig[]
 }
@@ -86,10 +90,23 @@ const normalizeSection = (input: unknown, fallbackIndex: number): ViewSection =>
     typeof raw.title === "string" && raw.title.trim().length > 0
       ? raw.title
       : `Section ${fallbackIndex + 1}`
+  const spanCandidate = raw.spanColumns
+  const spanColumns = clamp(
+    typeof spanCandidate === "number" && Number.isFinite(spanCandidate)
+      ? Math.floor(spanCandidate)
+      : DEFAULT_SECTION_SPAN,
+    MIN_SECTION_SPAN,
+    MAX_SECTION_SPAN,
+  )
+  const maxColumnsForSpan =
+    spanColumns === MAX_SECTION_SPAN ? MAX_COLUMNS : Math.min(MAX_COLUMNS, 2)
+  const columnCandidate = raw.columns
   const columns = clamp(
-    Number.isFinite(raw.columns) ? Math.floor(raw.columns as number) : DEFAULT_COLUMNS,
+    typeof columnCandidate === "number" && Number.isFinite(columnCandidate)
+      ? Math.floor(columnCandidate)
+      : Math.min(DEFAULT_COLUMNS, maxColumnsForSpan),
     MIN_COLUMNS,
-    MAX_COLUMNS,
+    maxColumnsForSpan,
   )
 
   const rawFields =
@@ -158,6 +175,7 @@ const normalizeSection = (input: unknown, fallbackIndex: number): ViewSection =>
   return {
     id,
     title,
+    spanColumns,
     columns,
     fields: normalizedFields,
   }
@@ -173,10 +191,23 @@ const cloneSections = (sections: ViewSection[]): ViewSection[] =>
   }))
 
 const convertDefaultSection = (definition: (typeof DEFAULT_VIEW_SECTIONS)[number], index: number): ViewSection => {
+  const spanCandidate = definition.spanColumns
+  const spanColumns = clamp(
+    typeof spanCandidate === "number" && Number.isFinite(spanCandidate)
+      ? Math.floor(spanCandidate)
+      : DEFAULT_SECTION_SPAN,
+    MIN_SECTION_SPAN,
+    MAX_SECTION_SPAN,
+  )
+  const maxColumnsForSpan =
+    spanColumns === MAX_SECTION_SPAN ? MAX_COLUMNS : Math.min(MAX_COLUMNS, 2)
+  const columnCandidate = definition.columns
   const columns = clamp(
-    Number.isFinite(definition.columns) ? Math.floor(definition.columns ?? DEFAULT_COLUMNS) : DEFAULT_COLUMNS,
+    typeof columnCandidate === "number" && Number.isFinite(columnCandidate)
+      ? Math.floor(columnCandidate)
+      : Math.min(DEFAULT_COLUMNS, maxColumnsForSpan),
     MIN_COLUMNS,
-    MAX_COLUMNS,
+    maxColumnsForSpan,
   )
   const fields = definition.fieldKeys.map((fieldKey, fieldIndex) => ({
     id: `${definition.id}-${fieldKey}-${fieldIndex}`,
@@ -190,6 +221,7 @@ const convertDefaultSection = (definition: (typeof DEFAULT_VIEW_SECTIONS)[number
       id: definition.id,
       title: definition.title,
       columns,
+      spanColumns,
       fields,
     },
     index,

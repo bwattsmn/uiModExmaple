@@ -234,6 +234,7 @@ type DefaultSectionDefinition = {
   id: string
   title: string
   columns?: number
+  spanColumns?: number
   fieldKeys: SalesFieldKey[]
 }
 
@@ -241,6 +242,7 @@ export const DEFAULT_VIEW_SECTIONS: readonly DefaultSectionDefinition[] = [
   {
     id: "section-overview",
     title: "Overview",
+    spanColumns: 2,
     columns: 2,
     fieldKeys: [
       "id",
@@ -254,18 +256,21 @@ export const DEFAULT_VIEW_SECTIONS: readonly DefaultSectionDefinition[] = [
   {
     id: "section-account",
     title: "Account",
+    spanColumns: 1,
     columns: 2,
     fieldKeys: ["accountName", "accountOwner"],
   },
   {
     id: "section-contact",
     title: "Contact",
+    spanColumns: 1,
     columns: 2,
     fieldKeys: ["contactName", "contactEmail", "contactPhone"],
   },
   {
     id: "section-billing",
     title: "Billing Address",
+    spanColumns: 2,
     columns: 2,
     fieldKeys: [
       "billingStreet",
@@ -278,6 +283,7 @@ export const DEFAULT_VIEW_SECTIONS: readonly DefaultSectionDefinition[] = [
   {
     id: "section-shipping",
     title: "Shipping Address",
+    spanColumns: 2,
     columns: 2,
     fieldKeys: [
       "shippingStreet",
@@ -290,12 +296,14 @@ export const DEFAULT_VIEW_SECTIONS: readonly DefaultSectionDefinition[] = [
   {
     id: "section-product",
     title: "Product",
+    spanColumns: 1,
     columns: 2,
     fieldKeys: ["productName", "productCategory", "productSku"],
   },
   {
     id: "section-financials",
     title: "Financials",
+    spanColumns: 2,
     columns: 2,
     fieldKeys: [
       "unitsSold",
@@ -313,12 +321,14 @@ export const DEFAULT_VIEW_SECTIONS: readonly DefaultSectionDefinition[] = [
   {
     id: "section-dates",
     title: "Dates",
+    spanColumns: 1,
     columns: 2,
     fieldKeys: ["orderDate", "closeDate", "deliveryDate"],
   },
   {
     id: "section-logistics",
     title: "Logistics",
+    spanColumns: 1,
     columns: 2,
     fieldKeys: ["salesChannel", "paymentTerms", "paymentMethod"],
   },
